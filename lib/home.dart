@@ -24,6 +24,8 @@ class _HomeState extends State<Home> {
   ];
   int _sliding = 0;
 
+  bool isCompleted = false;
+
   TodoFilter filter = TodoFilter.ALL;
 
   @override
@@ -32,8 +34,11 @@ class _HomeState extends State<Home> {
     todoBox = Hive.box<TodoModel>(todoBoxName);
   }
 
+  final _formKey = GlobalKey<FormState>();
+
   final TextEditingController titleController = TextEditingController();
   final TextEditingController detailController = TextEditingController();
+
   /// @2handaulet
   @override
   Widget build(BuildContext context) {
@@ -51,51 +56,117 @@ class _HomeState extends State<Home> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 80,
-        
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFFf2f1f6),
         onPressed: () {
-          showDialog(
+          showModalBottomSheet(
             context: context,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             builder: (context) {
-              return AlertDialog(
-                content: Container(
-                  height: 120,
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: titleController,
-                        decoration: InputDecoration(hintText: 'Title'),
-                      ),
-                      SizedBox(height: 12),
-                      TextField(
-                        controller: detailController,
-                        decoration: InputDecoration(hintText: 'Description'),
-                      ),
-                    ],
+              return Padding(
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom),
+                child: Form(
+                  key: _formKey,
+                  child: Container(
+                    height: 300,
+                    child: Column(
+                      children: [
+                        Center(
+                          child: Container(
+                            margin: EdgeInsets.symmetric(vertical: 12),
+                            height: 8,
+                            width: 60,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.black12),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            maxLength: 40,
+                            controller: titleController,
+                            validator: (value) => value.isEmpty
+                                ? 'Field should not be empty'
+                                : null,
+                            decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Your todo',
+                                focusedBorder: OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.black))),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: MaterialButton(
+                            height: 38,
+                            minWidth: double.maxFinite,
+                            color: Colors.black87,
+                            onPressed: () {
+                              final String title = titleController.text;
+                              final String detail = detailController.text;
+
+                              TodoModel todo = TodoModel(
+                                  title: title,
+                                  detail: detail,
+                                  isCompleted: false);
+                              todoBox.add(todo);
+
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                              'Add',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
                   ),
                 ),
-                actions: [
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        final String title = titleController.text;
-                        final String detail = detailController.text;
-
-                        TodoModel todo = TodoModel(
-                            title: title, detail: detail, isCompleted: false);
-                        todoBox.add(todo);
-
-                        Navigator.pop(context);
-                      },
-                      child: Text('Add Todo', style: TextStyle(fontSize: 16),),
-                    ),
-                  )
-                ],
               );
             },
           );
+          // showDialog(
+          //   context: context,
+          //   builder: (context) {
+          //     return AlertDialog(
+          //       content: Container(
+          //         height: 120,
+          //         child: Column(
+          //           children: [
+          //             TextField(
+          //               controller: titleController,
+          //               decoration: InputDecoration(hintText: 'Title'),
+          //             ),
+          //             SizedBox(height: 12),
+          //             TextField(
+          //               controller: detailController,
+          //               decoration: InputDecoration(hintText: 'Description'),
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //       actions: [
+          //         Center(
+          //           child: TextButton(
+          //             onPressed: () {
+          //
+          //             },
+          //             child: Text(
+          //               'Add Todo',
+          //               style: TextStyle(fontSize: 16),
+          //             ),
+          //           ),
+          //         )
+          //       ],
+          //     );
+          //   },
+          // );
           titleController.clear();
           detailController.clear();
         },
@@ -105,37 +176,42 @@ class _HomeState extends State<Home> {
           color: Colors.black,
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            CupertinoSlidingSegmentedControl(
-              children: {
-                0: Text('All'),
-                1: Text('Completed'),
-                2: Text('Incompleted'),
-              },
-              groupValue: _sliding,
-              onValueChanged: (newValue) {
-                setState(() {
-                  _sliding = newValue;
-                  if (newValue == 0) {
-                setState(() {
-                  filter = TodoFilter.ALL;
-                });
-              } else if (newValue == 1) {
-                setState(() {
-                  filter = TodoFilter.COMPLETED;
-                });
-              } else {
-                setState(() {
-                  filter = TodoFilter.INCOMPLETED;
-                });
-              }
-                });
-              },
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: CupertinoSlidingSegmentedControl(
+                children: {
+                  0: Text('All'),
+                  1: Text('Completed'),
+                  2: Text('Incompleted'),
+                },
+                groupValue: _sliding,
+                onValueChanged: (newValue) {
+                  setState(() {
+                    _sliding = newValue;
+                    if (newValue == 0) {
+                      setState(() {
+                        filter = TodoFilter.ALL;
+                      });
+                    } else if (newValue == 1) {
+                      setState(() {
+                        filter = TodoFilter.COMPLETED;
+                      });
+                    } else {
+                      setState(() {
+                        filter = TodoFilter.INCOMPLETED;
+                      });
+                    }
+                  });
+                },
+              ),
             ),
-            SizedBox(height: 20),
-            Center(
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: 20)),
+          SliverFillRemaining(
+            child: Center(
               child: Container(
                 height: MediaQuery.of(context).size.height,
                 width: MediaQuery.of(context).size.width / 1.03,
@@ -169,37 +245,57 @@ class _HomeState extends State<Home> {
                         final int key = keys[index];
                         final TodoModel todo = todos.get(key);
 
-                        return ListTile(
-                          title: Text(todo.title),
-                          subtitle: Text(todo.detail),
-                          leading: IconButton(
-                              onPressed: () {
+                        return Column(
+                          children: [
+                            ListTile(
+                              onTap: () {
                                 setState(() {
+                                  isCompleted = !isCompleted;
                                   TodoModel mTodo = TodoModel(
                                       title: todo.title,
                                       detail: todo.detail,
-                                      isCompleted: true);
+                                      isCompleted: isCompleted);
                                   todoBox.put(key, mTodo);
                                 });
                               },
-                              icon: !todo.isCompleted
-                                  ? Icon(CupertinoIcons.circle)
-                                  : Icon(CupertinoIcons.check_mark_circled)),
-                                  trailing: IconButton(onPressed: (){
+                              title: Text(
+                                todo.title,
+                                style: TextStyle(
+                                  decoration: todo.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
+                              leading: !todo.isCompleted
+                                  ? Icon(
+                                      CupertinoIcons.circle,
+                                      size: 32,
+                                    )
+                                  : Icon(
+                                      CupertinoIcons.check_mark_circled,
+                                      size: 32,
+                                    ),
+                              trailing: IconButton(
+                                  onPressed: () {
                                     todoBox.deleteAt(index);
-                                  }, icon: Icon(CupertinoIcons.delete)),
-                          
+                                  },
+                                  icon: Icon(CupertinoIcons.delete)),
+                            ),
+                            if (index == keys.length - 1) SizedBox(height: 80)
+                          ],
                         );
                       },
-                      separatorBuilder: (_, index) => Divider(height: 2),
+                      separatorBuilder: (_, index) {
+                        return Divider(height: 2);
+                      },
                       itemCount: keys.length,
                     );
                   },
                 ),
               ),
-            )
-          ],
-        ),
+            ),
+          )
+        ],
       ),
     );
   }
