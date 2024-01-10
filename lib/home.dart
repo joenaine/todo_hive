@@ -213,6 +213,7 @@ class _HomeState extends State<Home> {
           SliverFillRemaining(
             child: Center(
               child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 8),
                 height: MediaQuery.of(context).size.height,
                 width: MediaQuery.of(context).size.width / 1.03,
                 decoration: BoxDecoration(
